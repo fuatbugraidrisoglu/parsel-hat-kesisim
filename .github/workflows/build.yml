@@ -1,0 +1,45 @@
+name: Windows EXE derle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Bağımlılıkları kur
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: EXE derle
+        run: pyinstaller --noconfirm --windowed --name ParselHatKesisim --collect-all ezdxf --collect-all shapely app.py
+
+      - name: Zip'le
+        shell: pwsh
+        run: Compress-Archive -Path dist/ParselHatKesisim -DestinationPath ParselHatKesisim.zip
+
+      - name: Zip'i indirilebilir yap
+        uses: actions/upload-artifact@v4
+        with:
+          name: ParselHatKesisim
+          path: ParselHatKesisim.zip
+
+      - name: Etiket varsa sürüm olarak yayınla
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ParselHatKesisim.zip
